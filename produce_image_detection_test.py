@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 model.eval()
 
-# Get label mapping from model
+# Get label mapping from model blah blah
 label_map = model.config.id2label
 print("Loaded labels:", label_map)
 
