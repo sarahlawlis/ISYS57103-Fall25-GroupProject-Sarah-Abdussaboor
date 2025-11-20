@@ -1,2 +1,5 @@
 readme_photo/
 env/
+.DS_Store
+__pycache__/
+.pytest_cache
