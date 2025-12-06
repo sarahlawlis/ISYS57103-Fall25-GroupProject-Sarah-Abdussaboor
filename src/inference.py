@@ -1,18 +1,48 @@
-from PIL import Image
+import os
+from pathlib import Path
+
 import numpy as np
 import torch
+from PIL import Image
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 
-def load_model_and_processor(model_id: str = "jazzmacedo/fruits-and-vegetables-detector-36", device=None):
+DEFAULT_MODEL_ID = "jazzmacedo/fruits-and-vegetables-detector-36"
+MODEL_PATH_ENV = "MODEL_PATH"
+MODEL_ID_ENV = "MODEL_ID"
+
+
+def load_model_and_processor(model_id: str | None = None, model_path: str | None = None, device=None):
     """
-    Returns (model, processor, device)
+    Returns (model, processor, device).
+
+    Prefers a locally cached model directory when provided (via argument or
+    the MODEL_PATH env var). Falls back to the HF model id (argument or
+    MODEL_ID env var) if no path is given.
     """
-    processor = AutoImageProcessor.from_pretrained(model_id)
-    model = AutoModelForImageClassification.from_pretrained(model_id)
+
+    resolved_model_path = model_path or os.getenv(MODEL_PATH_ENV)
+    resolved_model_id = model_id or os.getenv(MODEL_ID_ENV, DEFAULT_MODEL_ID)
+
+    if resolved_model_path:
+        path = Path(resolved_model_path)
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Model path '{path}' not found. Provide a valid cached model directory via argument or {MODEL_PATH_ENV}."
+            )
+        source = str(path)
+        local_files_only = True
+    else:
+        source = resolved_model_id
+        local_files_only = False
+
+    processor = AutoImageProcessor.from_pretrained(source, local_files_only=local_files_only)
+    model = AutoModelForImageClassification.from_pretrained(source, local_files_only=local_files_only)
+
     device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
     model.to(device)
     model.eval()
     return model, processor, device
+
 
 def predict(image: Image.Image, model, processor, device, top_k: int = 3):
     image = image.resize((224, 224)).convert("RGB")

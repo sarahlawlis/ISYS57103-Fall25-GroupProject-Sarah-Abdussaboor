@@ -5,7 +5,7 @@ from typing import List, Tuple
 import cv2
 from PIL import Image
 
-from src.inference import load_model_and_processor, predict
+from src.inference import DEFAULT_MODEL_ID, load_model_and_processor, predict
 
 
 def _aggregate_top_k(history: deque, k: int = 3) -> List[Tuple[str, float]]:
@@ -29,18 +29,29 @@ def run_webcam_pipeline(
     decision_seconds: float = 7.0,
     confidence_threshold: float = 0.95,
     history_size: int = 30,
+    camera_index: int = 0,
+    model_path: str | None = None,
+    model_id: str = DEFAULT_MODEL_ID,
+    device=None,
 ):
     """
     Runs the webcam pipeline with a simple UI:
     - Continuously predicts top-3 items from the camera feed.
     - After either a time window or confidence threshold, shows buttons below the video
       for the user to click the correct prediction or "None".
+
+    Configurable via arguments (or CLI flags in scripts/run_webcam.py):
+    - model_path / model_id
+    - camera_index
+    - decision_seconds / confidence_threshold / history_size
     """
 
-    model, processor, device = load_model_and_processor()
+    model, processor, device = load_model_and_processor(
+        model_id=model_id, model_path=model_path, device=device
+    )
 
-    cap = cv2.VideoCapture(0)
-    window_name = "Fruit & Vegetable Classification"
+    cap = cv2.VideoCapture(camera_index)
+    window_name = f"Fruit & Vegetable Classification (cam {camera_index})"
     cv2.namedWindow(window_name)
 
     prediction_history = deque(maxlen=history_size)
