@@ -7,3 +7,55 @@ As retailers adopt self-checkout systems to streamline operations, a new challen
 
 ![](assets/self_checkout_potatoes.jpeg)
 *Figure 1: Self-Checkout Item Detection Powered by AI at Walmart*
+
+## Running locally
+
+Use the project venv (`./env`) to ensure the correct deps:
+
+```bash
+source env/bin/activate
+python -m pytest
+```
+
+Run the webcam demo with optional env overrides:
+
+```bash
+MODEL_PATH=/models/fruits-and-vegetables-detector-36 \
+CAMERA_INDEX=0 \
+python -m scripts.run_webcam
+```
+
+## Caching the model for offline/edge use
+
+Download the Hugging Face model once, then bake or mount it:
+
+```bash
+python scripts/cache_model.py --dest /models/fruits-and-vegetables-detector-36 \
+  --model-id jazzmacedo/fruits-and-vegetables-detector-36
+```
+
+Point the app at the cached copy via `MODEL_PATH` (or `--model-path`).
+
+## Make targets
+
+Convenience shortcuts (override variables as needed):
+
+```bash
+make cache-model MODEL_DIR=./models/fruits-and-vegetables-detector-36 MODEL_ID=jazzmacedo/fruits-and-vegetables-detector-36
+make test
+make build-image DOCKER_IMAGE=webcam-classifier
+make run-container MODEL_DIR=./models/fruits-and-vegetables-detector-36 DOCKER_IMAGE=webcam-classifier
+```
+
+## Container build
+
+Build a runtime image (expects the cached model at `/models/...`—copy or mount it):
+
+```bash
+docker build -t webcam-classifier .
+docker run --rm \ 
+  -e MODEL_PATH=/models/fruits-and-vegetables-detector-36 \ 
+  -v /host/models/fruits-and-vegetables-detector-36:/models/fruits-and-vegetables-detector-36:ro \ 
+  --device /dev/video0 \ 
+  webcam-classifier
+```
